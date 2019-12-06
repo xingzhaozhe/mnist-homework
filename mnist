@@ -1,0 +1,61 @@
+#神经网络实现手写数字识别
+
+# 加载数据
+from tensorflow.examples.tutorials.mnist import input_data
+import tensorflow as tf
+import numpy as np 
+# 载入数据集
+mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
+
+#每个批次的大小,以矩阵的形式一次性放入200张到神经网络
+batch_size = 200
+#计算一共有多少个批次
+n_batch = mnist.train.num_examples // batch_size
+
+# 输入占位符
+x = tf.placeholder(tf.float32, shape=[None, 784])  # 第一维表示样本数量，也就是一次有多少个图片
+y = tf.placeholder(tf.float32, shape=[None, 10])  # 这里加上shape 主要是防止在输入数据的时候出现维度不一致的情况，如果出现，就能及时发觉
+
+# 创建一个神经网络
+# 神经网络中间层
+W = tf.Variable(tf.truncated_normal([784, 300])) 
+b = tf.Variable(tf.zeros([300]))
+L1 = tf.nn.tanh(tf.matmul(x,W) + b) 
+# 神经网络输出层
+W2 = tf.Variable(tf.truncated_normal([300,10])) 
+b2 = tf.Variable(tf.zeros([10]))
+
+# 定义模型
+prediction = (tf.matmul(L1, W2) + b2)
+ 
+# 定义损失，交叉熵函数
+loss = tf.nn.softmax_cross_entropy_with_logits(labels=y, logits=prediction)
+
+# 定义优化器，Adam优化算法
+train_step = tf.train.AdamOptimizer(learning_rate=0.01).minimize(loss)
+# 使用梯度下降优化器，起始学习速率0.01 也就是下降速率
+
+# 变量初始化
+init = tf.global_variables_initializer()
+
+correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(prediction, 1)) 
+# 求准确率的方法：两个结果是预测与真实的值判断 结果存放在一个布尔型列表中 equal相同返回true 不同false
+# 求准确率 
+accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+    
+# 开始训练
+
+with tf.Session() as sess:
+    sess.run(init)
+    for epoch in range(50):#//把所有的图片训练50次
+        for batch in range(n_batch):
+            #获得一个批次
+            batch_xs, batch_ys = mnist.train.next_batch(batch_size)
+            # 图片数据保存在xs 图片标签保存在ys
+            sess.run(train_step, feed_dict={x:batch_xs, y:batch_ys})
+
+        # 执行accuracy这个方法 参数就是feed_dict里面的数据
+        acc = sess.run(accuracy, feed_dict={x:mnist.test.images, y:mnist.test.labels})
+        
+        print("Testing Accuracy",str(acc))
+
